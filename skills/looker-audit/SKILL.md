@@ -60,7 +60,7 @@ Follow this three-tiered audit strategy to move from symptoms to structural root
 2. **Drill-down review**: Use System Activity Inline Queries (refer to audit checklist below) for deep drill-downs, specific timeframes (e.g., 90 days vs 7 days), or custom filtering (e.g., filtering by a specific user or custom thresholds).
    - **Actionable Transition**: If `pulse dashboard-performance` flags a slow dashboard, **THEN** use the **Dashboard Average Runtime** query to drill down.
 3. **Root-Cause Telemetry over Static Metrics**: Do not simply flag an issue. When a bottleneck is identified, immediately trace the root cause by cross-referencing relevant areas and identify what is causing latencies or failures (e.g. tile bloat, un-cached Explores, or missing required partition filters) to help guide developers to fix the underlying LookML.
-   - **Actionable Transition**: If average runtime is high, **THEN** check **Tile Bloat (Heavy Dashboards)**, **Dynamic Fields**, or **Merged Queries**.
+   - **Actionable Transition**: If average runtime is high, **THEN** check **Tile Bloat (High-Complexity Dashboards)**, **Dynamic Fields**, or **Merged Queries**.
    - **LookML Inspection**: If LookML issues are suspected, you **MUST** provide full paths to the files (discovered via API as per Rule 4).
 
 
@@ -99,7 +99,7 @@ Before running detailed custom queries, you can use pre-packaged `looker-cli hea
 ### 1. Dashboard and Looks Health & Complexity
 Excessive complexity on dashboards leads to browser lag and poor user experience. Look for dashboards with > 20 tiles or average query times > 30 seconds.
 
-- **Tile Bloat (Heavy Dashboards)**: Identify dashboards with excessive tiles (> 25).
+- **Tile Bloat (High-Complexity Dashboards)**: Identify dashboards with excessive tiles (> 25).
   - **Total Count**:
     ```bash
     echo '{"model":"system__activity","view":"dashboard","fields":["dashboard.id"],"filters":{"dashboard_element.count":">25"}}' | looker-cli api query run_inline_query json - | jq 'length'
