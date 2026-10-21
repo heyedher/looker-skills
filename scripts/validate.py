@@ -83,7 +83,7 @@ def main():
         if len(lines) > 150:
             warnings.append(f"{rel_dir}/SKILL.md is {len(lines)} lines (recommended <= 150 lines).")
 
-        fm_match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
+        fm_match = re.match(r"^---\r?\n(.*?)\r?\n---", content, re.DOTALL)
         if not fm_match:
             errors.append(f"{rel_dir}/SKILL.md: Missing YAML frontmatter.")
             continue
