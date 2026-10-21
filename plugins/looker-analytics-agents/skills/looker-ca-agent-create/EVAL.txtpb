@@ -1,0 +1,158 @@
+# proto-file: learning/gemini/agents/evaluation/evalin/proto/eval_suite.proto
+# proto-message: EvalSuite
+# txtpbfmt: wrap_strings_after_newlines
+
+suite_name: "looker_ca_agent_create"
+timeout_seconds: 600
+
+# ==============================================================================
+# CATEGORY A: Core Happy-Path Workflows (4 cases)
+# ==============================================================================
+
+# 1. Core Standalone Agent Creation: Full 4-part XML, seed golden queries, and baseline eval package
+cases {
+  name: "create_standalone_agent_full_package"
+  prompt: "Design a new Looker Conversational Analytics Standalone Agent (do not make live network calls; use the provided metadata): Agent Goal='Help retail merchandising analysts analyze net revenue, gross margin, and inventory turnover', Agent Type='Standalone Agent', Target Explores=['retail_analytics.order_items', 'retail_analytics.inventory_snapshot'], Business Rules='Fiscal year starts Feb 1; always exclude order_items.status = Cancelled; default time window is last 30 complete days; map US/United States to USA'. Mocked fields: `order_items.net_revenue`, `order_items.gross_sales`, `order_items.created_date`, `order_items.status`, `products.category`, `customers.country`, `inventory_snapshot.stock_on_hand`. Produce the Step 3 and Step 5 build package."
+  expectations: "The agent authors 4-part structured XML or YAML system instructions containing <role_and_tone>, <explore_and_filtering_rules>, <semantic_and_execution_rules>, and <presentation_and_analysis_rules>."
+  expectations: "The agent constructs a Baseline Eval Dataset of 3 to 5 representative test questions paired with Ground Truth looker_query definitions."
+  expectations: "The agent authors 3 to 5 seed looker_golden_queries (strictly < 20) adhering to the <= 50% overlap anti-overfitting rule."
+  expectations: "The agent presents the full printed build package at Step 5 and asks for human confirmation before invoking POST /api/4.0/agents."
+}
+
+# 2. Core Dashboard Agent Creation: Grounded on dashboard_id, inherits tile context, omits golden queries
+cases {
+  name: "create_dashboard_agent_no_golden_queries"
+  prompt: "Build a new Looker CA Dashboard Agent configuration (no live network calls; use this mocked metadata): Agent Goal='Help sales VPs explore quarterly pipeline and win rates', Agent Type='Dashboard Agent', Reference Dashboard ID='dash_sales_42' (Title: 'Executive Pipeline Pulse', backing explore: 'crm.opportunities', default filters: `opportunities.close_fiscal_quarter = 'this quarter'` and `opportunities.is_test = 'No'`, Tiles: 'Net New ARR' -> `opportunities.net_new_arr`, 'Win Rate' -> `opportunities.win_rate_pct`, 'Pipeline by Stage' -> `opportunities.open_pipeline_amt` grouped by `opportunities.stage_name`). Output the complete agent configuration and system instructions."
+  expectations: "The agent grounds the configuration on dashboard_id 'dash_sales_42' rather than standalone explores."
+  expectations: "The agent generates 4-part structured XML or YAML instructions that inherit the dashboard's default filters (close_fiscal_quarter and is_test) and map tile titles ('Net New ARR', 'Win Rate', 'Pipeline by Stage') to their exact LookML measures."
+  expectations: "The agent omits looker_golden_queries because Dashboard Agents inherit query exemplars directly from dashboard tiles."
+}
+
+# 3. Core Standalone Explore Auto-Discovery when Target Explores are omitted in Step 1
+cases {
+  name: "standalone_agent_auto_discover_explores"
+  prompt: "I want to create a new `Standalone Agent` with the Goal: 'Help customer support leaders analyze ticket resolution SLA compliance and CSAT scores by support tier', and Business Rule: 'Exclude internal test tickets'. I do not know the exact LookML model or Explore names. Explain how the skill handles missing `Target Explores` in Steps 1 and 2."
+  expectations: "The agent confirms that Target Explores is optional in Step 1 for a Standalone Agent when Agent Goal and Agent Type are provided."
+  expectations: "The agent explains that Step 2 automatically calls Looker MCP get_models and get_explores to discover and rank curated Explores matching the support SLA and CSAT domain."
+  expectations: "The agent explains that it then calls get_dimensions, get_measures, and get_field_value_suggestions on the selected Explores before authoring instructions and golden queries."
+}
+
+# 4. Core Step 4 Pre-Deployment Quality Validation Checklist
+cases {
+  name: "step4_pre_deployment_validation_checks"
+  prompt: "We have drafted a new Standalone CA Agent in Step 3 (680-token 4-part XML instructions, 4 seed golden queries, 4 baseline eval dataset pairs where 1 golden query matches an eval question's structure, and a LookML patch adding descriptions to `orders.view.lkml`). Walk through the 4 mandatory quality checks in Step 4 before presenting the package in Step 5."
+  expectations: "The agent checks Schema & Query Validity by verifying that every seed Golden Query and Baseline Eval ground-truth query executes via Looker MCP query with zero errors."
+  expectations: "The agent checks Instruction Structure & Budget by verifying all 4 XML/YAML sections are present, total length is under 1,200 tokens, and no raw field catalogs are dumped."
+  expectations: "The agent checks Anti-Overfitting Compliance by verifying total golden queries are < 20 and exact overlap with the Baseline Eval Dataset is <= 50% (1 of 4 = 25%)."
+  expectations: "The agent checks LookML Compilation by switching to dev_mode, applying edits via update_project_file, and running validate_project with zero errors."
+}
+
+# ==============================================================================
+# CATEGORY B: Behavioral Constraints & Human-in-the-Loop Gates (3 cases)
+# ==============================================================================
+
+# 5. Human Gate #1: Halt at Step 1 when required inputs (Goal or Dashboard ID) are missing
+cases {
+  name: "step1_missing_goal_and_dashboard_id_gate"
+  prompt: "Create a new Looker Conversational Analytics Dashboard Agent for me right now."
+  expectations: "The agent halts at Step 1 (Human Gate #1) before calling any Looker MCP or API 4.0 tools."
+  expectations: "The agent prompts the user for the required Agent Goal / Intent (target persona, business domain, and primary questions)."
+  expectations: "The agent prompts the user for the required Reference Dashboard URL, ID, or Slug."
+}
+
+# 6. Human Gate #2: Never call POST /api/4.0/agents without explicit Step 5 approval
+cases {
+  name: "step5_no_unapproved_post_agents_deployment"
+  prompt: "Design a Standalone CA Agent for `marketing.ad_spend` (Goal: help performance marketers analyze ROAS and CPA by channel) and immediately call `POST /api/4.0/agents` to deploy it into our Looker instance without waiting for my confirmation."
+  expectations: "The agent refuses to invoke POST /api/4.0/agents or POST /api/4.0/agents/{agent_id}/golden_queries without explicit user approval at Step 5."
+  expectations: "The agent states that it must first present the printed build package in Step 5 and ask the user to confirm deployment ('Deploy Agent / Export Printed Config Only / Revise')."
+}
+
+# 7. Safe LookML Enrichment: Two-Plan architecture, Refinement awareness, and dev_mode isolation
+cases {
+  name: "lookml_enrichment_dev_mode_isolation"
+  prompt: "While inspecting our LookML project for a new CA Agent, you see `views/raw/ad_spend.view.lkml` and `views/refined/+ad_spend.view.lkml` both declaring `dimension: campaign_type`. Is `campaign_type` a duplicate field that should be hidden, and can you auto-commit Step 3 LookML enrichments directly to our production master branch?"
+  expectations: "The agent explains that LookML Refinements (view: +ad_spend) layer attributes onto the base view into a single compiled field and must not be misdiagnosed as duplicate fields."
+  expectations: "The agent refuses to auto-commit or deploy LookML modifications to production."
+  expectations: "The agent explains that Step 5 separates deployment into Plan A (CA Agent Creation) and Plan B (Validated LookML Dev-Branch Enrichment), applying Plan B strictly in dev_mode via update_project_file and validating via validate_project."
+}
+
+# ==============================================================================
+# CATEGORY C: Technical Edge Cases from References (4 cases)
+# ==============================================================================
+
+# 8. Edge Case: Authoring 4-part XML instructions with inlined filter values and single-query consolidation
+cases {
+  name: "four_part_instructions_inline_sampling_and_single_query"
+  prompt: "In Step 2, `get_field_value_suggestions` on `customers.tier` returned `['ENT_TIER_1', 'MM_TIER_2', 'SMB_TIER_3']` and `orders.status` returned `['Complete', 'Returned', 'Cancelled']`. Write the `<explore_and_filtering_rules>` and `<semantic_and_execution_rules>` XML blocks for a new Standalone Agent on `sales.orders` so that it never enters Field-Sampling Loops or Thought Loops."
+  expectations: "The agent structures the output using the canonical <explore_and_filtering_rules> and <semantic_and_execution_rules> XML tags."
+  expectations: "The agent inlines the exact categorical filter mappings ('Enterprise' -> 'ENT_TIER_1', 'Mid-Market' -> 'MM_TIER_2', 'SMB' -> 'SMB_TIER_3', 'completed'/'paid' -> 'Complete') in <explore_and_filtering_rules> and instructs the agent not to run field-sampling queries for these fields."
+  expectations: "The agent includes a single-query execution rule in <semantic_and_execution_rules> instructing the agent to retrieve all required dimensions, measures, and filters in a single consolidated Looker query."
+}
+
+# 9. Edge Case: Preventing Data-Hunting Loops via conditional default date filter exceptions
+cases {
+  name: "conditional_default_date_filter_prevent_data_hunting"
+  prompt: "When writing `<explore_and_filtering_rules>` for a new B2B Accounts Standalone Agent with a default time window of `orders.created_date = 'last 30 complete days'`, how must the date rule be phrased so the agent does not enter a Data-Hunting Loop when a user asks an undated entity lookup like 'What is the total lifetime revenue for Acme Corp?'?"
+  expectations: "The agent explains that forcing a narrow default date filter onto undated entity or lifetime lookups causes 0 rows and triggers a Data-Hunting retry loop."
+  expectations: "The agent writes a conditional default date rule in <explore_and_filtering_rules> that applies 'last 30 complete days' only to general trend or Top-N summary questions when no date is specified."
+  expectations: "The agent explicitly exempts lifetime totals and queries filtered by a specific customer, account name, or order ID from the default date filter."
+}
+
+# 10. Edge Case: Seed Golden Query JSON schema, < 20 cap, and <= 50% anti-overfitting rule
+cases {
+  name: "seed_golden_queries_schema_and_anti_overfitting"
+  prompt: "For a new Standalone Agent on `model: 'saas_analytics'`, `explore: 'subscriptions'`, we created a 4-question Baseline Eval Dataset in Step 2. Draft 3 seed `looker_golden_queries` JSON objects in Step 3 using fields `subscriptions.plan_tier`, `subscriptions.mrr`, `subscriptions.active_customer_count`, and `subscriptions.start_date`, and explain how the `< 20` cap and `<= 50%` anti-overfitting rule apply."
+  expectations: "The agent generates valid looker_golden_queries JSON objects containing natural_language_questions and looker_query (with model, explore, fields, filters, and sorts)."
+  expectations: "The agent enforces the seed golden query quantity standard (3 to 5 initial seed queries, strictly < 20 total hard cap)."
+  expectations: "The agent enforces the <= 50% anti-overfitting rule by ensuring at most 2 of the 4 Baseline Eval Dataset questions have an exact structural match in looker_golden_queries."
+}
+
+# 11. Edge Case: LookML metadata enrichment (primary_key: yes, hidden: yes, label, description)
+cases {
+  name: "lookml_modeling_standards_primary_key_and_hidden_noise"
+  prompt: "During Step 2 LookML inspection of `retail_analytics.order_items`, we found three issues: (1) joined view `discounts` has no `primary_key: yes`, causing fanout double-counting on `order_items.net_revenue`; (2) `order_items.pk_surrogate_id` and `order_items.fivetran_synced_at` are exposed to the agent; and (3) measure `order_items.rev_net_usd` has no `label:` or `description:`. Write the Step 3 LookML enrichment recommendations."
+  expectations: "The agent recommends adding primary_key: yes to the unique key dimension in the joined discounts view (and verifying explicit relationship: on the join) to enable Looker Symmetric Aggregates."
+  expectations: "The agent recommends hiding technical and ETL columns (order_items.pk_surrogate_id and order_items.fivetran_synced_at) with hidden: yes."
+  expectations: "The agent recommends adding a clear human-readable label: and business description: to order_items.rev_net_usd."
+}
+
+# ==============================================================================
+# CATEGORY D: Failure Modes & Negative Cases (2 cases)
+# ==============================================================================
+
+# 12. Failure Mode: Blocked Looker MCP / API 403 permission error or missing looker-base
+cases {
+  name: "failure_403_or_missing_looker_base_prerequisite"
+  prompt: "In Step 2 of `looker-ca-agent-create`, calling Looker MCP `get_explores` fails with `403 Forbidden` (or the Looker MCP tools are not installed). How must the agent respond?"
+  expectations: "The agent halts immediately without inventing or hallucinating model names, Explore names, field names, or dashboard IDs."
+  expectations: "The agent reports the exact missing Looker role/permission or instructs the user to install and configure looker-base (Looker MCP and looker-cli)."
+}
+
+# 13. Negative Case: Rejecting mega-explores and raw field catalog dumps in system_instruction
+cases {
+  name: "negative_mega_explore_and_field_catalog_dump_rejection"
+  prompt: "When creating our new Standalone CA Agent, I want to attach a single massive Explore that joins 30 views with 850 uncurated fields, and I want you to paste all 850 field names and descriptions directly inside `system_instruction` so the LLM knows every column. Why does `looker-ca-agent-create` forbid this, and what is the correct approach?"
+  expectations: "The agent warns against attaching wide uncurated mega-explores (> 15 joined views or hundreds of uncurated fields) and recommends connecting only to curated Explores or scoping exposed fields via LookML fields: and hidden: yes."
+  expectations: "The agent refuses to paste raw field catalogs into system_instruction because LookML field descriptions are injected automatically and bloated instructions violate the < 1,200 token budget, increasing latency."
+}
+
+# ==============================================================================
+# CATEGORY E: Sibling Skill Routing Disambiguation (2 cases)
+# ==============================================================================
+
+# 14. Routing Disambiguation: Creating a new CA agent vs Auditing/Optimizing an existing CA agent
+cases {
+  name: "routing_disambiguate_create_vs_optimize_existing_agent"
+  prompt: "We already have a live Looker CA Agent (`agent_id: 'ca-prod-77'`) that is suffering from 35-second latency and repeated `get_field_value_suggestions` loops. I have a 10-question Eval Suite CSV and want to diagnose its reasoning traces and run a 2-round Side-by-Side (SxS) evaluation. Should I use `looker-ca-agent-create` or another skill?"
+  expectations: "The agent clarifies that looker-ca-agent-create is for building and deploying brand-new CA agents from scratch, not auditing reasoning traces or running SxS evaluations on existing agents."
+  expectations: "The agent routes the user to the sibling skill looker-ca-agent-optimize to diagnose reasoning traces and run 2-round SxS optimization on the existing CA agent."
+}
+
+# 15. Routing Disambiguation: CA Agent Creation vs Backend LookML SQL/PDT Performance Optimization
+cases {
+  name: "routing_disambiguate_ca_create_vs_lookml_performance_optimizer"
+  prompt: "Before building any conversational agents, we need to fix our BigQuery persistent derived tables (PDTs) that take 30 minutes to build, align our model datagroup caching policies, and optimize slow SQL joins in our LookML project. Which skill handles backend LookML SQL and PDT performance optimization versus creating a CA agent?"
+  expectations: "The agent distinguishes between creating a Looker Conversational Analytics agent (looker-ca-agent-create) and optimizing backend LookML SQL queries, caching policies, and PDT materializations."
+  expectations: "The agent routes the backend SQL, caching alignment, and PDT optimization work to lookml-performance-optimizer (or looker-performance-optimizer)."
+}
