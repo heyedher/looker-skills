@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "looker-toolbox": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@googleapis/mcp-toolbox",
+        "--prebuilt",
+        "looker"
+      ],
+      "env": {
+        "LOOKER_BASE_URL": "${LOOKER_BASE_URL}",
+        "LOOKER_CLIENT_ID": "${LOOKER_CLIENT_ID}",
+        "LOOKER_CLIENT_SECRET": "${LOOKER_CLIENT_SECRET}"
+      }
+    }
+  }
+}

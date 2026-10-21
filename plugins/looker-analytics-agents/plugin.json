@@ -1,0 +1,14 @@
+{
+  "name": "looker-analytics-agents",
+  "version": "0.1.0",
+  "description": "Skills for building, auditing, and optimizing Looker Conversational Analytics (CA) Standalone and Dashboard Agents. Requires looker-base.",
+  "publisher": "google",
+  "license": "Apache-2.0",
+  "dependencies": [
+    "looker-base"
+  ],
+  "skills": [
+    "skills/looker-ca-agent-optimize",
+    "skills/looker-ca-agent-create"
+  ]
+}

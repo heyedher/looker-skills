@@ -1,0 +1,17 @@
+{
+  "name": "looker-lookml-modeling",
+  "version": "1.0.0",
+  "description": "Skills for authoring, architecting, reviewing, migrating, and optimizing LookML models, views, and explores. Requires looker-base.",
+  "publisher": "google",
+  "license": "Apache-2.0",
+  "dependencies": [
+    "looker-base"
+  ],
+  "skills": [
+    "skills/lookml-author",
+    "skills/looker-architect",
+    "skills/lookml-performance-optimizer",
+    "skills/lookml-reviewer",
+    "skills/lookml-dialect-migration"
+  ]
+}

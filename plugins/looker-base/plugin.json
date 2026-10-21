@@ -1,0 +1,11 @@
+{
+  "name": "looker-base",
+  "version": "1.0.0",
+  "description": "Core Looker MCP server configuration and Looker CLI usage skills. Required base plugin for all Looker domain plugins.",
+  "publisher": "google",
+  "license": "Apache-2.0",
+  "skills": [
+    "skills/using-looker-mcp",
+    "skills/looker-cli-run"
+  ]
+}

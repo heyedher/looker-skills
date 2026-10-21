@@ -1,0 +1,13 @@
+{
+  "name": "looker-operations",
+  "version": "1.0.0",
+  "description": "Skills for Looker instance administration, connection management, governance auditing, and health monitoring. Requires looker-base.",
+  "publisher": "google",
+  "license": "Apache-2.0",
+  "dependencies": [
+    "looker-base"
+  ],
+  "skills": [
+    "skills/looker-audit"
+  ]
+}

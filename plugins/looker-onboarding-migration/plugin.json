@@ -1,0 +1,13 @@
+{
+  "name": "looker-onboarding-migration",
+  "version": "1.0.0",
+  "description": "Step-by-step developer onboarding orchestrator and platform migration workflows for Looker. Requires looker-base.",
+  "publisher": "google",
+  "license": "Apache-2.0",
+  "dependencies": [
+    "looker-base"
+  ],
+  "skills": [
+    "skills/looker-developer-onboarding"
+  ]
+}

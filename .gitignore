@@ -6,7 +6,8 @@ GEMINI.md
 Makefile
 TODO.md
 BLOG.md
-/scripts
+!plugins/**/scripts/
+!_shared/scripts/
 !skills/**/scripts/
 tmp
 node_modules

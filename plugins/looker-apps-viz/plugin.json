@@ -1,0 +1,15 @@
+{
+  "name": "looker-apps-viz",
+  "version": "0.1.0",
+  "description": "Skills for building Looker dashboards, custom visualizations, extensions, and Data Apps. Requires looker-base.",
+  "publisher": "google",
+  "license": "Apache-2.0",
+  "dependencies": [
+    "looker-base"
+  ],
+  "skills": [
+    "skills/looker-custom-viz",
+    "skills/looker-dashboards",
+    "skills/looker-extension"
+  ]
+}
