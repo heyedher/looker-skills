@@ -26,7 +26,7 @@ import sys
 def parse_shared_refs(skill_md_path):
     with open(skill_md_path, "r", encoding="utf-8") as f:
         content = f.read()
-    match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
+    match = re.match(r"^---\r?\n(.*?)\r?\n---", content, re.DOTALL)
     if not match:
         return []
     frontmatter = match.group(1)
