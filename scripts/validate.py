@@ -89,9 +89,9 @@ def main():
             continue
 
         fm = fm_match.group(1)
-        for req_key in ["name:", "description:", "license:", "metadata:"]:
-            if req_key not in fm:
-                errors.append(f"{rel_dir}/SKILL.md: Missing required frontmatter field '{req_key}'.")
+        for req_key in ["name", "description", "license", "metadata"]:
+            if not re.search(rf"^\s*{req_key}\s*:", fm, re.MULTILINE):
+                errors.append(f"{rel_dir}/SKILL.md: Missing required frontmatter field '{req_key}:'.")
 
     for w in warnings:
         print(f"[WARNING] {w}")
