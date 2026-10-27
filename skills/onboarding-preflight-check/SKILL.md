@@ -22,7 +22,7 @@ Execute the pre-flight check script in `system` mode. Specify the path where you
 plan to install the Looker CLI (typically `~/.local/bin` or a workspace path):
 
 ```bash
-./skills/onboarding-preflight-check/scripts/preflight_check.sh --mode system --install-dir ~/.local/bin
+./_shared/scripts/preflight_check.sh --mode system --install-dir ~/.local/bin
 ```
 
 ### 2. Handle Check Failures
@@ -68,7 +68,7 @@ project (`roles/bigquery.dataViewer`, `roles/bigquery.jobUser`, and
 `roles/serviceusage.serviceUsageConsumer`):
 
 ```bash
-./skills/onboarding-preflight-check/scripts/preflight_check.sh --mode iam --looker-project {looker_gcp_project_id} --bq-project {bigquery_gcp_project_id}
+./_shared/scripts/preflight_check.sh --mode iam --looker-project {looker_gcp_project_id} --bq-project {bigquery_gcp_project_id}
 ```
 
 > [!IMPORTANT] **Why `roles/serviceusage.serviceUsageConsumer` is required**:
