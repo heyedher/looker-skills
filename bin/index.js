@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-
 const fs = require('fs');
 const path = require('path');
 const diff = require('diff');
@@ -25,9 +24,9 @@ const pc = require('picocolors');
 const args = process.argv.slice(2);
 const overrideAll = args.includes('--override');
 
-// The package directory
-const sourceDir = path.resolve(__dirname, '../skills');
-// The user's cwd
+const repoRoot = path.resolve(__dirname, '..');
+const pluginsRoot = path.resolve(repoRoot, 'plugins');
+const legacySkillsRoot = path.resolve(repoRoot, 'skills');
 const targetDir = path.resolve(process.cwd(), '.agents/skills');
 
 async function getFiles(dir) {
@@ -39,75 +38,109 @@ async function getFiles(dir) {
   return Array.prototype.concat(...files);
 }
 
+function discoverSkillDirectories() {
+  const discovered = new Map();
+
+  // 1. Discover domain-scoped skills under plugins/<domain>/skills/<skill-name>
+  if (fs.existsSync(pluginsRoot)) {
+    for (const pluginDirent of fs.readdirSync(pluginsRoot, { withFileTypes: true })) {
+      if (!pluginDirent.isDirectory()) continue;
+      const pluginSkillsDir = path.join(pluginsRoot, pluginDirent.name, 'skills');
+      if (!fs.existsSync(pluginSkillsDir)) continue;
+      for (const skillDirent of fs.readdirSync(pluginSkillsDir, { withFileTypes: true })) {
+        if (!skillDirent.isDirectory()) continue;
+        const skillPath = path.join(pluginSkillsDir, skillDirent.name);
+        if (fs.existsSync(path.join(skillPath, 'SKILL.md'))) {
+          discovered.set(skillDirent.name, skillPath);
+        }
+      }
+    }
+  }
+
+  // 2. Fallback for any legacy unmigrated skills under skills/<skill-name>
+  if (fs.existsSync(legacySkillsRoot)) {
+    for (const skillDirent of fs.readdirSync(legacySkillsRoot, { withFileTypes: true })) {
+      if (!skillDirent.isDirectory() || discovered.has(skillDirent.name)) continue;
+      const skillPath = path.join(legacySkillsRoot, skillDirent.name);
+      if (fs.existsSync(path.join(skillPath, 'SKILL.md'))) {
+        discovered.set(skillDirent.name, skillPath);
+      }
+    }
+  }
+
+  return discovered;
+}
+
 async function start() {
-  if (!fs.existsSync(sourceDir)) {
-    console.error(pc.red(`Error: Source directory not found at ${sourceDir}`));
+  const skillDirs = discoverSkillDirectories();
+  if (skillDirs.size === 0) {
+    console.error(pc.red(`Error: No skills found under ${pluginsRoot} or ${legacySkillsRoot}`));
     process.exit(1);
   }
 
-  const allSourceFiles = await getFiles(sourceDir);
+  for (const [skillName, skillRoot] of skillDirs.entries()) {
+    const allSkillFiles = await getFiles(skillRoot);
 
-  for (const srcFile of allSourceFiles) {
-    const relativePath = path.relative(sourceDir, srcFile);
-    // User requested "copy them into the current working directory".
-    // Typically they just get copied direct into `.agents/skills` relative to CWD.
-    const destFile = path.resolve(targetDir, relativePath);
+    for (const srcFile of allSkillFiles) {
+      const relWithinSkill = path.relative(skillRoot, srcFile);
+      const relativePath = path.join(skillName, relWithinSkill);
+      const destFile = path.resolve(targetDir, relativePath);
 
-    const destDir = path.dirname(destFile);
-    if (!fs.existsSync(destDir)) {
-      fs.mkdirSync(destDir, { recursive: true });
-    }
+      const destDir = path.dirname(destFile);
+      if (!fs.existsSync(destDir)) {
+        fs.mkdirSync(destDir, { recursive: true });
+      }
 
-    if (!fs.existsSync(destFile)) {
-      console.log(pc.green(`Creating: .agents/skills/${relativePath}`));
-      fs.copyFileSync(srcFile, destFile);
-      continue;
-    }
+      if (!fs.existsSync(destFile)) {
+        console.log(pc.green(`Creating: .agents/skills/${relativePath}`));
+        fs.copyFileSync(srcFile, destFile);
+        continue;
+      }
 
-    // File already exists
-    const srcContent = fs.readFileSync(srcFile, 'utf8');
-    const destContent = fs.readFileSync(destFile, 'utf8');
+      const srcContent = fs.readFileSync(srcFile, 'utf8');
+      const destContent = fs.readFileSync(destFile, 'utf8');
 
-    if (srcContent === destContent) {
-      console.log(pc.gray(`Skipped (identical): .agents/skills/${relativePath}`));
-      continue;
-    }
+      if (srcContent === destContent) {
+        console.log(pc.gray(`Skipped (identical): .agents/skills/${relativePath}`));
+        continue;
+      }
 
-    if (overrideAll) {
-      console.log(pc.yellow(`Overriding: .agents/skills/${relativePath}`));
-      fs.copyFileSync(srcFile, destFile);
-      continue;
-    }
+      if (overrideAll) {
+        console.log(pc.yellow(`Overriding: .agents/skills/${relativePath}`));
+        fs.copyFileSync(srcFile, destFile);
+        continue;
+      }
 
-    console.log(pc.cyan(`\nDiff for .agents/skills/${relativePath}:`));
-    const diffResult = diff.diffLines(destContent, srcContent);
+      console.log(pc.cyan(`\nDiff for .agents/skills/${relativePath}:`));
+      const diffResult = diff.diffLines(destContent, srcContent);
 
-    diffResult.forEach((part) => {
-      const color = part.added ? pc.green :
-                    part.removed ? pc.red : pc.gray;
-      const prefix = part.added ? '+ ' :
-                     part.removed ? '- ' : '  ';
+      diffResult.forEach((part) => {
+        const color = part.added ? pc.green :
+                      part.removed ? pc.red : pc.gray;
+        const prefix = part.added ? '+ ' :
+                       part.removed ? '- ' : '  ';
 
-      const lines = part.value.split('\n');
-      if (lines[lines.length - 1] === '') lines.pop();
+        const lines = part.value.split('\n');
+        if (lines[lines.length - 1] === '') lines.pop();
 
-      lines.forEach(line => {
-        console.log(color(`${prefix}${line}`));
+        lines.forEach(line => {
+          console.log(color(`${prefix}${line}`));
+        });
       });
-    });
 
-    const response = await prompts({
-      type: 'confirm',
-      name: 'value',
-      message: `Overwrite .agents/skills/${relativePath}?`,
-      initial: false
-    });
+      const response = await prompts({
+        type: 'confirm',
+        name: 'value',
+        message: `Overwrite .agents/skills/${relativePath}?`,
+        initial: false
+      });
 
-    if (response.value) {
-      console.log(pc.yellow(`Overriding: .agents/skills/${relativePath}`));
-      fs.copyFileSync(srcFile, destFile);
-    } else {
-      console.log(pc.gray(`Skipped: .agents/skills/${relativePath}`));
+      if (response.value) {
+        console.log(pc.yellow(`Overriding: .agents/skills/${relativePath}`));
+        fs.copyFileSync(srcFile, destFile);
+      } else {
+        console.log(pc.gray(`Skipped: .agents/skills/${relativePath}`));
+      }
     }
   }
 

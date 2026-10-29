@@ -1,0 +1,42 @@
+{
+  "name": "looker-skills",
+  "owner": {
+    "name": "Google Looker",
+    "url": "https://github.com/looker-open-source/looker-skills"
+  },
+  "metadata": {
+    "description": "Official Looker agentic skills organized into domain-specific plugins for LookML modeling, developer onboarding, operations, visualizations, and Conversational Analytics."
+  },
+  "plugins": [
+    {
+      "name": "looker-base",
+      "description": "Core Looker MCP server configuration and Looker CLI usage skills. Required base plugin for all Looker domain plugins.",
+      "source": "./plugins/looker-base"
+    },
+    {
+      "name": "looker-lookml-modeling",
+      "description": "Skills for authoring, architecting, reviewing, migrating, and optimizing LookML models, views, and explores. Requires looker-base.",
+      "source": "./plugins/looker-lookml-modeling"
+    },
+    {
+      "name": "looker-onboarding-migration",
+      "description": "Step-by-step developer onboarding orchestrator and platform migration workflows for Looker. Requires looker-base.",
+      "source": "./plugins/looker-onboarding-migration"
+    },
+    {
+      "name": "looker-operations",
+      "description": "Skills for Looker instance administration, connection management, governance auditing, and health monitoring. Requires looker-base.",
+      "source": "./plugins/looker-operations"
+    },
+    {
+      "name": "looker-apps-viz",
+      "description": "Skills for building Looker dashboards, custom visualizations, extensions, and Data Apps. Requires looker-base.",
+      "source": "./plugins/looker-apps-viz"
+    },
+    {
+      "name": "looker-analytics-agents",
+      "description": "Skills for building, auditing, and optimizing Looker Conversational Analytics (CA) Standalone and Dashboard Agents. Requires looker-base.",
+      "source": "./plugins/looker-analytics-agents"
+    }
+  ]
+}
