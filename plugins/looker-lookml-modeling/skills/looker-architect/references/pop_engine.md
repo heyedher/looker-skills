@@ -1,34 +1,33 @@
 # Advanced Period-over-Period (PoP) Engine
 
-This reference handbook details the standard pattern for implementing a high-performance, single-view Period-over-Period (PoP) engine in Looker. This pattern allows business users to dynamically compare metrics across flexible timeframes (e.g., Year-over-Year, Month-over-Month, Week-over-Week) without duplicating views or performing heavy database joins.
+This reference handbook details the standard pattern for implementing a high-performance, single-view Period-over-Period (PoP) engine in Looker. It allows business users to dynamically compare metrics across flexible timeframes (Yesterday, Week, Month, Year, or custom intervals) without duplicating views or executing self-joins.
 
 ---
 
 ## 1. Core Architecture
 
-The PoP engine relies on:
-1.  A user-facing **Control Date Filter** where the user selects the "Current Period" range.
-2.  A user-facing **Comparison Period Parameter** to select the offset (Yesterday, Week, Month, Year).
-3.  Liquid-templated CASE WHEN logic that dynamically labels database records as `'Selected Period'`, `'Previous Period'`, or `'Not in time period'`.
+The single-explore PoP engine relies on:
+1. A user-facing **Control Date Filter** (`pop_date_filter`) selecting the current date range.
+2. A user-facing **Comparison Period Parameter** (`pop_compare_to`) selecting the comparison offset.
+3. Liquid-templated `case:` logic labeling rows as `'Selected Period'`, `'Previous Period'`, or `'Not in time period'`.
 
 ```mermaid
-graph TD
-    A[User Selects Date Range & Offset] --> B[Liquid Computes Boundaries]
-    B --> C{Record Date Evaluation}
-    C -->|Within Selected Range| D[Label: 'Selected Period']
-    C -->|Within Offset Range| E[Label: 'Previous Period']
-    C -->|Otherwise| F[Label: 'Not in time period']
+flowchart TD
+    A["User Selects Date Range & Offset"] --> B["Liquid Computes Boundaries"]
+    B --> C{"Record Date Evaluation"}
+    C -->|"Within Selected Range"| D["Label: Selected Period"]
+    C -->|"Within Offset Range"| E["Label: Previous Period"]
+    C -->|"Otherwise"| F["Label: Not in time period"]
 ```
 
 ---
 
 ## 2. LookML Implementation
 
-Add these fields to your refined view file (e.g., `views/refined/orders_rfn.view.lkml`). Always place them in the `# PERIOD OVER PERIOD LOGIC` section at the top.
+Add these fields to your refined view (`views/refined/<view>_rfn.view.lkml`), placing dimensions, measures, and filters/parameters in their respective functional sections (`1. Keys -> 2. Dimensions -> 3. Measures -> 4. Filters & Parameters -> 5. Sets`).
 
-### Step 1: User Inputs (Filter & Parameter)
+### Step 1: User Inputs (Place in Section 4: Filters & Parameters)
 ```lookml
-# 1. The main date filter that controls the comparison
 filter: pop_date_filter {
   view_label: "_PoP"
   label: "Comparison Date Filter"
@@ -37,7 +36,6 @@ filter: pop_date_filter {
   default_value: "7 days"
 }
 
-# 2. Parameter to select the offset interval
 parameter: pop_compare_to {
   view_label: "_PoP"
   label: "Compare To"
@@ -51,29 +49,29 @@ parameter: pop_compare_to {
 }
 ```
 
-### Step 2: Hidden Helper Dimensions
-Define these hidden dimensions to calculate the date boundaries. Note that the date casting and date-addition logic must be adjusted based on your database dialect (see Section 3 for multi-dialect SQL).
+### Step 2: Hidden Helper Dimensions (Place in Section 2: Dimensions)
+Reference the base date dimension via `${created_date}` (Rule 5 substitution, avoiding `DATE(CAST(col AS DATE))` double-casting crashes) and align `DATE` types across `CASE` branches:
 
 ```lookml
-# Helper: Extract the raw date column from the database
 dimension: pop_data_date {
   hidden: yes
   type: date
-  sql: CAST(${TABLE}.created_at AS DATE) ;; # Adjust database column name accordingly
+  datatype: date
+  sql: ${created_date} ;;
 }
 
-# Helper: Capture the start date of the user's filter
 dimension_group: pop_filter_start {
   hidden: yes
   type: time
+  datatype: date
   timeframes: [raw, date]
-  sql: CASE WHEN {% date_start pop_date_filter %} IS NULL THEN '1970-01-01' ELSE CAST({% date_start pop_date_filter %} AS DATE) END ;;
+  sql: CASE WHEN {% date_start pop_date_filter %} IS NULL THEN CAST('1970-01-01' AS DATE) ELSE CAST({% date_start pop_date_filter %} AS DATE) END ;;
 }
 
-# Helper: Capture the end date of the user's filter
 dimension_group: pop_filter_end {
   hidden: yes
   type: time
+  datatype: date
   timeframes: [raw, date]
   sql: CASE WHEN {% date_end pop_date_filter %} IS NULL THEN CURRENT_DATE ELSE CAST({% date_end pop_date_filter %} AS DATE) END ;;
 }
@@ -81,25 +79,22 @@ dimension_group: pop_filter_end {
 
 ---
 
-## 3. Multi-Dialect SQL Implementations (Dialect-Agnostic)
+## 3. Multi-Dialect SQL Boundary Dimensions
 
-Depending on your database warehouse, implement the appropriate boundary-calculation dimensions.
-
-### Dialect A: Google BigQuery
+### Dialect A: Google BigQuery & Cloud Spanner (GoogleSQL)
 ```lookml
-# Helper: Calculate the date difference (interval) of the selected range in days
 dimension: pop_interval_days {
   hidden: yes
   type: number
   sql: DATE_DIFF(${pop_filter_end_date}, ${pop_filter_start_date}, DAY) ;;
 }
 
-# Helper: Calculate the starting boundary of the previous period
 dimension: pop_previous_start_date {
   hidden: yes
   type: date
-  sql: 
-    DATE_SUB(${pop_filter_start_date}, INTERVAL 
+  datatype: date
+  sql:
+    DATE_SUB(${pop_filter_start_date}, INTERVAL
       {% if pop_compare_to._parameter_value == "'Yesterday'" %} 1 DAY
       {% elsif pop_compare_to._parameter_value == "'Week'" %} 1 WEEK
       {% elsif pop_compare_to._parameter_value == "'Month'" %} 1 MONTH
@@ -112,18 +107,17 @@ dimension: pop_previous_start_date {
 
 ### Dialect B: Snowflake
 ```lookml
-# Helper: Calculate the date difference (interval) of the selected range in days
 dimension: pop_interval_days {
   hidden: yes
   type: number
   sql: DATEDIFF('day', ${pop_filter_start_date}, ${pop_filter_end_date}) ;;
 }
 
-# Helper: Calculate the starting boundary of the previous period
 dimension: pop_previous_start_date {
   hidden: yes
   type: date
-  sql: 
+  datatype: date
+  sql:
     DATEADD(
       {% if pop_compare_to._parameter_value == "'Yesterday'" %} 'day', -1
       {% elsif pop_compare_to._parameter_value == "'Week'" %} 'week', -1
@@ -138,18 +132,17 @@ dimension: pop_previous_start_date {
 
 ### Dialect C: Amazon Redshift & PostgreSQL
 ```lookml
-# Helper: Calculate the date difference (interval) of the selected range in days
 dimension: pop_interval_days {
   hidden: yes
   type: number
   sql: DATEDIFF(day, ${pop_filter_start_date}, ${pop_filter_end_date}) ;;
 }
 
-# Helper: Calculate the starting boundary of the previous period
 dimension: pop_previous_start_date {
   hidden: yes
   type: date
-  sql: 
+  datatype: date
+  sql:
     DATEADD(
       {% if pop_compare_to._parameter_value == "'Yesterday'" %} day, -1
       {% elsif pop_compare_to._parameter_value == "'Week'" %} week, -1
@@ -164,15 +157,10 @@ dimension: pop_previous_start_date {
 
 ---
 
-## 4. The Core Period Evaluator & Measures
+## 4. Period Evaluator & Scorecard KPI Measures
 
-Once the boundaries are calculated, define the period group dimension and the scorecard measures.
-
-### The Period Group Dimension
-This dimension categorizes every database row into a comparison category. This is the field users will drag into their pivots.
-
+### Period Group Dimension (Section 2: Dimensions)
 ```lookml
-# Evaluates which period group the record belongs to
 dimension: pop_period_group {
   view_label: "_PoP"
   label: "Comparison Period"
@@ -192,38 +180,29 @@ dimension: pop_period_group {
 }
 ```
 
-### Scorecard KPI Measures (Inheritance Compliant)
-To build scorecard tiles showing current value, previous value, and percent change, write the following measures. Notice the strict use of the **Substitution Operator** (`${orders_count}`) to inherit properties and compile dependencies correctly, and **Safe Division** to prevent errors.
+### Scorecard KPI Measures (Section 3: Measures)
+Never attach `sql:` to `type: count` measures (Looker rejects `sql:` on `type: count`), and never reference an already-aggregated measure inside `type: sum`/`average` (reference the unaggregated base dimension via `${sale_amount}`).
 
 ```lookml
-# Base Measure (Defined in raw/refined views)
-measure: orders_count {
-  type: count
-  label: "Orders Count"
-  description: "Total number of orders."
-}
-
-# 1. Selected Period Measure
+# Example A: Row-Count PoP Measures (omit sql: on type: count)
 measure: orders_count_selected {
   view_label: "_PoP"
   label: "Orders Count (Selected Period)"
   description: "Total orders during the user-selected date range."
   type: count
+  value_format_name: decimal_0
   filters: [pop_period_group: "Selected Period"]
-  sql: ${orders_count} ;; # INHERITS metadata from base measure
 }
 
-# 2. Previous Period Measure
 measure: orders_count_previous {
   view_label: "_PoP"
   label: "Orders Count (Previous Period)"
   description: "Total orders during the previous comparison date range."
   type: count
+  value_format_name: decimal_0
   filters: [pop_period_group: "Previous Period"]
-  sql: ${orders_count} ;; # INHERITS metadata from base measure
 }
 
-# 3. Percentage Change Measure (Safe Math & Ratio Compliant)
 measure: orders_count_pop_change {
   view_label: "_PoP"
   label: "Orders Count PoP % Change"
@@ -233,18 +212,27 @@ measure: orders_count_pop_change {
   sql: 1.0 * (${orders_count_selected} - ${orders_count_previous}) / NULLIF(${orders_count_previous}, 0) ;;
   html:
     {% if value >= 0 %}
-      <span style="color: #0F9D58;">▲ {{ rendered_value }}</span>
+      <span style="color: #0F9D58;">&#9650; {{ rendered_value }}</span>
     {% else %}
-      <span style="color: #DB4437;">▼ {{ rendered_value }}</span>
+      <span style="color: #DB4437;">&#9660; {{ rendered_value }}</span>
     {% endif %} ;;
+}
+
+# Example B: Sum/Currency PoP Measure (reference base dimension ${sale_amount})
+measure: revenue_total_selected {
+  view_label: "_PoP"
+  label: "Revenue (Selected Period)"
+  type: sum
+  sql: ${sale_amount} ;;
+  value_format_name: usd
+  filters: [pop_period_group: "Selected Period"]
 }
 ```
 
 ---
 
 ## 5. Development Checklist
-- [ ] Inputs (`pop_date_filter`, `pop_compare_to`) are placed in the `_PoP` view label.
-- [ ] Helper boundary dimensions are set to `hidden: yes` to prevent user confusion.
-- [ ] Date additions and castings are written using the correct SQL dialect syntax.
-- [ ] Measures utilize `${field_name}` substitution operators to inherit properties.
-- [ ] Percent change measure utilizes safe division (`NULLIF` or `SAFE_DIVIDE`) to prevent database query crashes.
+- [ ] `pop_date_filter` and `pop_compare_to` are grouped under `view_label: "_PoP"` in Section 4.
+- [ ] Helper boundary dimensions are `hidden: yes` with matching `DATE` types across `CASE` branches.
+- [ ] `type: count` PoP measures omit `sql:`, while `type: sum` PoP measures reference unaggregated dimensions (`${field_name}`).
+- [ ] Percent change measures (`<metric>_pop_change`) use `NULLIF(..., 0)` or `SAFE_DIVIDE` and `value_format_name: percent_1`.

@@ -2,7 +2,7 @@
 
 This reference handbook details the **Generalized Self-Healing SQL Loop Protocol** using the Looker MCP server. 
 
-Server-side LookML compilation (via `project validate` or `health_analyze`) only checks syntax and semantic integrity. It **does not** guarantee that the generated SQL queries will execute successfully on the target database. To ensure 100% functional dashboards, the AI agent must run execution-time query audits, capture database-specific errors, and surgically repair the LookML in place using an iterative, tile-by-tile self-healing loop.
+Server-side LookML compilation (via `validate_project` or `looker-cli project validate`) only checks syntax and semantic integrity. It **does not** guarantee that the generated SQL queries will execute successfully on the target database. To ensure 100% functional dashboards, the AI agent must run execution-time query audits, capture database-specific errors, and surgically repair the LookML in place using an iterative, tile-by-tile self-healing loop.
 
 ---
 
@@ -17,7 +17,7 @@ graph TD
     A[Start: LookML Compiles Successfully] --> B[Catalog: Extract All Dashboard Tiles]
     B --> C[Loop: Select Next Dashboard Tile]
     C --> D{All Tiles Verified?}
-    D -->|Yes| E[🚀 Global Project Success: 100% Working]
+    D -->|Yes| E[Global Project Success: 100% Working]
     D -->|No| F[MCP: Run Tile Database Query]
     F --> G{Query Succeeds? HTTP 200 + Data}
     G -->|Yes| H[Mark Tile as 'Verified' & Continue]
@@ -26,7 +26,7 @@ graph TD
     I --> J[Analyze SQL & Log Database Error]
     J --> K[Reconcile Schema: MCP get_connection_table_columns]
     K --> L[Surgically Repair LookML View/Explore]
-    L --> M[LookML Compile Check: MCP health_analyze]
+    L --> M[LookML Compile Check: MCP validate_project]
     M -->|Compiles| N[MCP: Re-run Tile Query]
     M -->|Fails| L
     N --> O{Healed?}
@@ -63,7 +63,7 @@ For every tile that fails to execute on the database (throwing a SQL or gRPC err
     *   Identify the LookML dimension, measure, or filter that generated the invalid SQL fragment.
 6.  **Reconcile with Database Schema (MCP Schema Audit)**:
     *   If the database returns a "Column not found" or "Table not found" error, **DO NOT guess** the column names.
-    *   Call the Looker MCP tool `get_connection_table_columns` passing the appropriate `connection_name` and `table_name`.
+    *   Call the Looker MCP tool `get_connection_table_columns` passing `conn`, `schema`, and `tables`.
     *   Inspect the returned database schema to identify the *exact spelling and casing* of the physical columns.
 7.  **Apply Dialect-Specific Corrections**:
     *   Surgically update the LookML view `sql:` mapping to match the correct database column.
@@ -74,7 +74,7 @@ For every tile that fails to execute on the database (throwing a SQL or gRPC err
             1.  **For Timestamps**: If the physical database column is a `TIMESTAMP` (or a timestamp-compatible expression) and you want a `date` dimension, **do not** cast the column in your `sql:` parameter. Write `sql: ${TABLE}.column_name ;;` and let Looker apply its native wrapping function automatically.
             2.  **For Already-Date Columns (Coercion Hack)**: If the database column is already a `DATE` type and the database engine crashes due to double wrapping, you must coerce the SQL parameter inside `sql:` to a type that the dialect's automatic wrapper function natively accepts (e.g., casting a `DATE` column to a `TIMESTAMP` in the `sql:` parameter so that Looker's automatic `DATE()` wrap converts it back to a `DATE` safely: `sql: CAST(${TABLE}.date_col AS TIMESTAMP) ;;`).
 8.  **Verify the Repair**:
-    *   Run the Looker compiler (`health_analyze`) to ensure no LookML syntax errors were introduced.
+    *   Run the Looker compiler (`validate_project` or `looker-cli project validate`) to ensure no LookML syntax errors were introduced.
     *   Re-execute the tile's query via Looker MCP.
     *   **Success Condition**: If the query returns a successful `HTTP 200` response with valid rows of data, mark the tile as **Healed & Verified** and proceed to the next tile.
     *   **Failure Condition**: If it still fails, increment the loop counter and repeat Phase 3.
@@ -92,7 +92,7 @@ These case studies illustrate how to resolve common execution-time database erro
 ### Case Study A: Column Mapping Mismatch (Google Cloud Spanner)
 *   **Error Intercepted**: `INVALID_ARGUMENT: Name query_text not found inside oldest_active_queries`.
 *   **Reconciliation Plan**:
-    1. The agent calls `get_connection_table_columns(connection_name: "spanner_conn", table_name: "oldest_active_queries")`.
+    1. The agent calls `get_connection_table_columns` with `{"conn": "spanner_conn", "schema": "spanner_sys", "tables": "oldest_active_queries"}`.
     2. The schema returns that the physical column is named `text`, not `query_text`.
     3. The agent surgically updates the LookML mapping:
        ```lookml

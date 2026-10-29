@@ -80,8 +80,8 @@ Never display a raw KPI in isolation. Always provide a comparison context. For a
 
 ### The Two-Measure Dashboard PoP Pattern:
 1.  **Select Exactly Two Fields**:
-    *   The first field **MUST** be the current period measure (e.g., `pop_total_revenue_current`).
-    *   The second field **MUST** be the percentage change measure (e.g., `pop_total_revenue_change`).
+    *   The first field **MUST** be the current period measure (e.g., `revenue_total_selected`).
+    *   The second field **MUST** be the percentage change measure (e.g., `revenue_total_pop_change`).
 2.  **Enable Comparison Visualization**:
     *   Set `show_comparison: true`.
     *   Set `comparison_type: change` (this displays the delta as a percentage).
@@ -98,7 +98,7 @@ Never display a raw KPI in isolation. Always provide a comparison context. For a
   explore: agent_events
   type: single_value
   # 1. Query exactly two fields: Current value, and percentage Change
-  fields: [v_tool_error.pop_tool_errors_current, v_tool_error.pop_tool_errors_change]
+  fields: [v_tool_error.tool_errors_count_selected, v_tool_error.tool_errors_count_pop_change]
   # 2. Map the dashboard filter to the PoP date filter of the explore
   filters:
     agent_events.pop_date_filter: 7 days
@@ -139,7 +139,7 @@ Inject custom HTML inside a text tile to create a professional, branded header:
 
 ---
 
-## 4. The Dual-Axis Configuration Quirk
+## 5. The Dual-Axis Configuration Quirk
 
 To correlate different metric types (e.g., Total Connections and CPU Saturation %) on a single line/column chart, configure dual axes.
 
@@ -172,7 +172,7 @@ To correlate different metric types (e.g., Total Connections and CPU Saturation 
 
 ---
 
-## 5. Dashboard Filters & UI Controls
+## 6. Dashboard Filters & UI Controls
 
 *   **Filter Type**: Prefer `type: field_filter` to inherit automated suggestions, search indexing, and validation from the model.
 *   **UI Placement (`ui_config.display`)**:
@@ -200,7 +200,7 @@ filters:
 
 ---
 
-## 6. Data Quality & Visual Outlier Controls
+## 7. Data Quality & Visual Outlier Controls
 
 ### A. Null Grouping Exclusion
 When joining nullable dimension tables, unmapped records group under a `null` label and can take over the top slots in charts. **Always** add static element-level `filters` to exclude `null` values in ranking charts (e.g., Top Users, Top Queries):
@@ -227,9 +227,9 @@ map_marker_radius_min: 2
 
 ---
 
-## 7. Quality Assurance Checklist
+## 8. Quality Assurance Checklist
 - [ ] Dashboard uses `newspaper` layout on a 24-column grid.
-- [ ] Visual hierarchy is established (KPIs ➔ Trends ➔ Segments ➔ Details).
+- [ ] Visual hierarchy is established (KPIs -> Trends -> Segments -> Details).
 - [ ] Branded section headers (`type: text`) are used to separate topics.
 - [ ] Every KPI scorecard has a comparison context (PoP or Target).
 - [ ] All `y_axes` configurations use nested objects with `id` (no raw strings).

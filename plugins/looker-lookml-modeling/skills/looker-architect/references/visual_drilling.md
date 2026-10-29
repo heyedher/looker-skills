@@ -11,7 +11,7 @@ Always define the JSON visualization payload in `manifest.lkml` as global Liquid
 ```lookml
 # In manifest.lkml
 
-constant: VIZ_LINE_CHART {
+constant: DRILL_LINE_VIZ {
   value: "{% assign vis_config = '{
     \"type\": \"looker_line\",
     \"x_axis_gridlines\": false,
@@ -24,7 +24,7 @@ constant: VIZ_LINE_CHART {
   }' %}"
 }
 
-constant: VIZ_PIE_CHART {
+constant: DRILL_PIE_VIZ {
   value: "{% assign vis_config = '{
     \"type\": \"looker_pie\",
     \"show_value_labels\": true,
@@ -53,7 +53,7 @@ measure: total_sales {
   link: {
     label: "Show Trend Over Time"
     url: "
-      @{VIZ_LINE_CHART}
+      @{DRILL_LINE_VIZ}
       {{ link }}&fields=orders.created_date,{{ _view._name }}.total_sales
       &fill_fields=orders.created_date
       &sorts=orders.created_date+asc
@@ -69,12 +69,13 @@ When drilling into a category breakdown, use the pie configuration and limit the
 ```lookml
 measure: total_orders {
   type: count
+  value_format_name: decimal_0
   drill_fields: []
   
   link: {
     label: "Breakdown by Category"
     url: "
-      @{VIZ_PIE_CHART}
+      @{DRILL_PIE_VIZ}
       {{ link }}&fields=products.category,{{ _view._name }}.total_orders
       &sorts={{ _view._name }}.total_orders+desc
       &limit=10
@@ -88,7 +89,7 @@ measure: total_orders {
 For multi-dimensional trends over time (e.g., total sales over time pivoted by product category), define a Stacked Area visualization constant and pivot the query on the category dimension.
 ```lookml
 # manifest.lkml Constant:
-# constant: VIZ_STACKED_AREA {
+# constant: DRILL_AREA_VIZ {
 #   value: "{% assign vis_config = '{\"type\":\"looker_area\",\"stacking\":\"normal\",\"legend_position\":\"center\",\"point_style\":\"circle\"}' %}"
 # }
 
@@ -96,12 +97,13 @@ For multi-dimensional trends over time (e.g., total sales over time pivoted by p
 measure: total_sales_pivoted {
   type: sum
   sql: ${sale_price} ;;
+  value_format_name: usd
   drill_fields: []
   
   link: {
     label: "Sales Trend Breakdown (Area Chart)"
     url: "
-      @{VIZ_STACKED_AREA}
+      @{DRILL_AREA_VIZ}
       {{ link }}&fields=orders.created_month,products.category,{{ _view._name }}.total_sales_pivoted
       &pivots=products.category
       &sorts=orders.created_month+desc
@@ -117,19 +119,20 @@ measure: total_sales_pivoted {
 To show a highly structured, clean detailed transaction log when drilling (e.g., viewing individual records in a clean spreadsheet layout instead of Looker's default unstyled view), use a `looker_grid` constant.
 ```lookml
 # manifest.lkml Constant:
-# constant: VIZ_GRID_TABLE {
+# constant: DRILL_GRID_VIZ {
 #   value: "{% assign vis_config = '{\"type\":\"looker_grid\",\"show_row_numbers\":true,\"size_to_fit\":true,\"table_theme\":\"white\",\"truncate_text\":false}' %}"
 # }
 
 # refined view measure:
 measure: total_errors {
   type: count
+  value_format_name: decimal_0
   drill_fields: []
   
   link: {
     label: "View Detailed Error Log (Table)"
     url: "
-      @{VIZ_GRID_TABLE}
+      @{DRILL_GRID_VIZ}
       {{ link }}&fields=agent_events.timestamp_time,agent_events.trace_id,{{ _view._name }}.tool_name,agent_events.error_message
       &sorts=agent_events.timestamp_time+desc
       &limit=50
