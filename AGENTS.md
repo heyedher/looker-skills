@@ -83,6 +83,9 @@ Before opening or updating a pull request, always run:
 # 1. Synchronize _shared/ references into skills declaring metadata.shared-refs
 python3 scripts/sync_shared.py
 
-# 2. Validate frontmatter, line limits, unique names, and link integrity
+# 2. Rebuild multi-client marketplace manifests and flat .agents/skills/ symlinks
+python3 scripts/build_release.py
+
+# 3. Validate frontmatter, line limits, manifests, unique names, and link integrity
 python3 scripts/validate.py
 ```

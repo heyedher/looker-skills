@@ -1,112 +1,110 @@
 # Looker Developer Skills Repository
 
-This repository contains a collection of "skills" designed to assist AI agents and developers in writing high-quality, standardized LookML code and guiding them through Looker onboarding. Each skill encapsulates specific instructions, best practices, and examples for different aspects of Looker development.
+Official agentic skills for Looker, organized into **6 domain-scoped plugins** under `plugins/` to help AI coding assistants (**Gemini CLI**, **Claude Code**, **Cursor**, **GitHub Copilot**, **Antigravity**, and **Codex**) build, audit, optimize, and operate LookML projects, dashboards, extensions, and Conversational Analytics agents without saturating context windows.
+
+> Migrating from `v0.4.x` (`skills/*`)? See [MIGRATION.md](MIGRATION.md) for the complete consolidation map and backwards-compatible `.agents/skills/` paths.
+
+---
+
+## Domain Plugin Catalog
+
+Install only the domain plugin(s) relevant to your workflow (every domain plugin builds on `looker-base`):
+
+| Domain Plugin | Version | Status | Included Skills | Purpose |
+| :--- | :--- | :--- | :--- | :--- |
+| **[looker-base](plugins/looker-base/plugin.json)** | `1.0.0` | GA | `using-looker-mcp`, `looker-cli-run` (+ `mcp.json`) | Looker MCP server configuration and `looker-cli` execution prerequisites required by all domain plugins. |
+| **[looker-lookml-modeling](plugins/looker-lookml-modeling/plugin.json)** | `1.0.0` | GA | `lookml-author`, `looker-architect`, `lookml-performance-optimizer`, `lookml-reviewer`, `lookml-dialect-migration` | Authoring LookML constructs, scaffolding raw/refined enterprise projects, tuning SQL/PDT/datagroup performance, reviewing PR diffs, and migrating SQL dialects. |
+| **[looker-onboarding-migration](plugins/looker-onboarding-migration/plugin.json)** | `1.0.0` | GA | `looker-developer-onboarding` | End-to-end guided developer onboarding from BigQuery connection setup through first LookML model and dashboard. |
+| **[looker-operations](plugins/looker-operations/plugin.json)** | `1.0.0` | GA | `looker-audit` | Instance-wide System Activity governance, unused content cleanup, and datagroup health auditing. |
+| **[looker-apps-viz](plugins/looker-apps-viz/plugin.json)** | `0.1.0` | Preview | `looker-custom-viz`, `looker-dashboards`, `looker-extension` | Building native LookML dashboards, custom visualizations, and Looker Extension SDK applications. |
+| **[looker-analytics-agents](plugins/looker-analytics-agents/plugin.json)** | `0.1.0` | Preview | `looker-ca-agent-optimize`, `looker-ca-agent-create` | Creating, auditing, and optimizing Looker Conversational Analytics (CA) Standalone and Dashboard Agents. |
+
+---
 
 ## Installation & Usage
 
-To use these skills in your own projects—especially to enhance AI assistants like **Gemini**, **Cursor**, **Antigravity**, or **Claude Code**—we recommend adding this repository to your project.
+### 1. Install via `npx skills add` (Recommended)
 
-### Installation via npx skills add (Recommended)
-
-The `skills` CLI is a tool used to install and manage specialized instructions (skills) for AI agents in your workspace. To install these LookML skills in your project, use `npx skills add`.
+Install individual skills or the full catalog into your workspace:
 
 ```bash
+# Install all Looker skills
 npx skills add looker-open-source/looker-skills
+
+# Or install a specific skill (plus looker-base prerequisites)
+npx skills add looker-open-source/looker-skills --skill looker-architect
 ```
 
-### Installing as an Agent Plugin
+### 2. Install Domain Plugins in Claude Code, Cursor, or GitHub Copilot
 
-You can install this repository as a plugin in your favorite AI coding agent to expose these LookML and onboarding skills:
+This repository ships multi-client marketplace manifests (`.claude-plugin/marketplace.json`, `.cursor-plugin/marketplace.json`, and `.github/plugin/marketplace.json`) so you can install only the domain plugins you need:
 
-#### Antigravity CLI
-Install the plugin directly from the Git repository:
+```bash
+git clone https://github.com/looker-open-source/looker-skills.git
+
+# Claude Code: load a single domain plugin + looker-base
+claude --plugin-dir ./looker-skills/plugins/looker-base --plugin-dir ./looker-skills/plugins/looker-lookml-modeling
+
+# Or register the repository marketplace persistently
+claude plugin install ./looker-skills
+```
+
+### 3. Antigravity CLI
+
 ```bash
 agy plugin install https://github.com/looker-open-source/looker-skills
 ```
 
-#### Claude Code
-First, clone the repository locally:
-```bash
-git clone https://github.com/looker-open-source/looker-skills.git
-```
+### 4. Codex
 
-To run Claude Code with the plugin loaded temporarily:
-```bash
-claude --plugin-dir ./looker-skills
-```
-
-To install the plugin persistently:
-```bash
-claude plugin install ./looker-skills
-```
-
-#### Codex
-Run the installer script to clone the repository locally and register it in your personal marketplace:
 ```bash
 curl -sSL -o codex-install.sh https://raw.githubusercontent.com/looker-open-source/looker-skills/main/codex-install.sh && bash codex-install.sh
 ```
-Once complete, restart Codex and open the plugin manager (`/plugins`) to verify that the **Looker Developer Skills** plugin is active.
 
-## Core LookML Skills
+### 5. Copy Skills into Current Workspace via npm (`@looker/looker-skills`)
 
-These skills provide specific instructions for creating and modifying LookML objects.
+```bash
+npx @looker/looker-skills
+```
 
-### Models
-*   **[lookml-model](skills/lookml-model/SKILL.md)**: Instructions for creating and configuring Model files, including connections and includes.
+---
 
-### Explores
-*   **[lookml-explore](skills/lookml-explore/SKILL.md)**: Basic Explore definition, including descriptions, labels, and basic joins.
-*   **[lookml-explore-joins](skills/lookml-explore/references/joins.md)**: Detailed guidance on defining joins, relationships, and SQL conditions.
-*   **[lookml-explore-advanced](skills/lookml-explore/references/advanced.md)**: Advanced configurations like `access_filter`, `sql_always_where`, and UNNESTing arrays.
+## Skill Reference by Domain
 
-### Views
-*   **[lookml-view](skills/lookml-view/SKILL.md)**: Standard View definitions, `sql_table_name`, and file organization (Standard, Extended, Refined).
-*   **[lookml-view-derived-table](skills/lookml-view/references/derived_table.md)**: Creating Native Derived Tables (NDT) and SQL Derived Tables (SDT).
-*   **[lookml-refinements](skills/lookml-refinements/SKILL.md)**: Deep dive into LookML includes, refinements (layering), and project structure best practices.
-*   **[lookml-sets](skills/lookml-sets/SKILL.md)**: Guide to using LookML sets for grouping fields, controlling visibility, and managing drill paths.
+### 1. Base Infrastructure (`plugins/looker-base`)
+* **`using-looker-mcp`**: Configures and operates the prebuilt Looker MCP server (`@googleapis/mcp-toolbox`).
+* **`looker-cli-run`**: Installs, authenticates, and executes `looker-cli` commands against Looker instances.
 
-### Fields
-*   **[lookml-fields](skills/lookml-fields/SKILL.md)**: Overview of LookML field types (Dimension, Measure, Filter, Parameter) and the role of the `sql` parameter in each.
-*   **[lookml-fields-dimension](skills/lookml-fields/references/dimension.md)**: Creating Dimensions, including HTML, links, and tier types.
-*   **[lookml-fields-measure](skills/lookml-fields/references/measure.md)**: Creating Measures, including aggregation types and drill fields.
-*   **[lookml-fields-dimension-group](skills/lookml-fields/references/dimension_group.md)**: Defining Dimension Groups for time and duration, including timeframe best practices.
-*   **[lookml-fields-filter-parameter](skills/lookml-fields/references/filter_parameter.md)**: Creating Filter-only fields and Parameters for dynamic interactivity.
-*   **[lookml-fields-value-format](skills/lookml-fields/references/value_format.md)**: Standard and custom formatting for numeric and currency fields.
+### 2. LookML Modeling & Performance (`plugins/looker-lookml-modeling`)
+* **`lookml-author`**: Unified LookML authoring workflow covering models, explores, joins, views, derived tables, fields, Liquid, sets, refinements, access grants, data tests, and style conventions.
+* **[looker-architect](plugins/looker-lookml-modeling/skills/looker-architect/SKILL.md)**: End-to-end greenfield scaffolding and brownfield modernization enforcing raw/refined view separation, functional field sequencing, Period-over-Period KPI engines, manifest visual drills, native tabbed dashboards, PK unit tests, and MCP self-healing SQL verification.
+* **[lookml-performance-optimizer](plugins/looker-lookml-modeling/skills/lookml-performance-optimizer/SKILL.md)**: Audits and tunes slow SQL queries, warehouse scan costs, ETL-aligned `datagroup` caching, SARGable dimensions, join pruning, and incremental PDT cold-start materializations.
+* **`lookml-reviewer`**: Structured code review workflow for LookML pull requests and semantic changes.
+* **`lookml-dialect-migration`**: Translates warehouse SQL dialects across LookML projects (including Snowflake to BigQuery Standard SQL).
 
-## Advanced Functionality
+### 3. Developer Onboarding (`plugins/looker-onboarding-migration`)
+* **`looker-developer-onboarding`**: Orchestrator guiding new developers step-by-step through preflight checks, schema exploration, BigQuery connection creation, project setup, LookML modeling, and dashboard creation.
 
-### Logic & Security
-*   **[lookml-liquid](skills/lookml-liquid/SKILL.md)**: Using Liquid variables for dynamic SQL, HTML, and links.
-*   **[lookml-access-grants](skills/lookml-access-grants/SKILL.md)**: Implementing `access_grant` and `required_access_grants` for row-level security.
-*   **[lookml-tests](skills/lookml-tests/SKILL.md)**: Writing LookML tests for Views and Explores.
+### 4. Operations & Governance (`plugins/looker-operations`)
+* **`looker-audit`**: Audits Looker instances via System Activity for dashboard performance bottlenecks, excessive table calculations, unused content, and datagroup health.
 
-### Architecture & Project Design
-*   **[looker-architect](skills/looker-architect/SKILL.md)**: Master developer skill for scaffolding, building, refactoring, validating, and auditing enterprise LookML projects. Enforces raw/refined view separation, functional field sequencing, visual drilling, native tabs, and self-healing SQL loops.
+### 5. Dashboards, Visualizations & Extensions (`plugins/looker-apps-viz` — Preview)
+* **`looker-dashboards`**: Designs and configures Looker dashboards and visualization types.
+* **`looker-custom-viz`**: Builds custom JavaScript/TypeScript visualizations using the Looker Visualization API.
+* **`looker-extension`**: Scaffolds and develops embedded applications with the Looker Extension SDK.
 
-### Performance & Optimization
-*   **[looker-performance-optimizer](skills/looker-performance-optimizer/SKILL.md)**: Master developer skill for auditing, diagnosing, and optimizing query performance in Looker projects, including caching, PDT strategies, and SQL profiling.
-*   **[lookml-caching-datagroups](skills/looker-performance-optimizer/references/caching_datagroups.md)**: Caching alignment strategies, ETL-triggered datagroups, and persistency tuning.
-*   **[lookml-query-diagnostics](skills/looker-performance-optimizer/references/query_diagnostic.md)**: Guidelines for running diagnostic queries, analyzing SQL explain plans, and identifying bottlenecks.
-*   **[lookml-pdt-optimization](skills/looker-performance-optimizer/references/pdt_optimization.md)**: PDT optimization standards, index/partition configurations, and incremental materializations.
-*   **[lookml-refactoring](skills/looker-performance-optimizer/references/lookml_refactoring.md)**: Field-level optimization, join pruning, and eliminating redundant calculations.
+### 6. Conversational Analytics Agents (`plugins/looker-analytics-agents` — Preview)
+* **`looker-ca-agent-optimize`**: Audits and optimizes existing Looker Conversational Analytics Standalone and Dashboard Agents across zero-token `Audit` mode and Side-by-Side (SxS) `Optimize` mode.
+* **`looker-ca-agent-create`**: Designs and deploys new Standalone (Explore-backed) and Dashboard-backed Conversational Analytics Agents with 4-part structured instructions and verified golden queries.
 
-## Developer Onboarding Skills
+---
 
-These skills guide new Looker developers and agents through database exploration, CLI setup, project configuration, LookML modeling, and dashboard creation.
+## Contributing & Repository Validation
 
-*   **[looker-developer-onboarding](skills/looker-developer-onboarding/SKILL.md)**: Orchestrator skill coordinating the e2e onboarding journey.
-*   **[onboarding-preflight-check](skills/onboarding-preflight-check/SKILL.md)**: Verifying local system prerequisites (`gcloud`, `bq`, permissions) and cloud IAM roles.
-*   **[exploring-data-for-looker](skills/exploring-data-for-looker/SKILL.md)**: Exploring BigQuery data schemas to define onboarding goals.
-*   **[installing-looker-cli](skills/installing-looker-cli/SKILL.md)**: Verifying the CLI installation.
-*   **[authenticating-looker-cli](skills/authenticating-looker-cli/SKILL.md)**: Authenticating the CLI via OAuth.
-*   **[connecting-looker-to-bigquery](skills/connecting-looker-to-bigquery/SKILL.md)**: Creating a database connection to BigQuery.
-*   **[setting-up-looker-project](skills/setting-up-looker-project/SKILL.md)**: Creating Looker project and Git repo.
-*   **[creating-lookml-model](skills/creating-lookml-model/SKILL.md)**: Defining views, explores, models, and running verification queries.
-*   **[creating-looker-dashboard](skills/creating-looker-dashboard/SKILL.md)**: Creating LookML dashboard, importing UDD, and iterating on feedback.
-*   **[lookml-modeling-guidelines](skills/lookml-modeling-guidelines/SKILL.md)**: Consolidated LookML modeling best practices and CLI commands syntax.
+See [AGENTS.md](AGENTS.md) and [CONTRIBUTING.md](CONTRIBUTING.md) for skill authoring standards and consolidation rules. Before submitting a pull request, run:
 
-   ## Migration
-
-These skills guide Looker developers and agents during migration from other BI Tools to Looker or other DB to BQ
-
-*   **[snowflake-to-bigquery-converter](skills/snowflake-to-bigquery-converter/SKILL.md)**: Audits entire Looker projects or targeted LookML files for Snowflake-specific SQL functions, operators, identifier quoting, and semi-structured data syntax, and proposes production-ready BigQuery Standard SQL equivalents.
+```bash
+python3 scripts/sync_shared.py
+python3 scripts/build_release.py
+python3 scripts/validate.py
+```

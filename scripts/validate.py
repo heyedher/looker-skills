@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Validates plugin manifests and skills under plugins/ and experimental/."""
+"""Validates plugin manifests, marketplace registries, flat symlinks, and skills."""
 
 import glob
 import json
@@ -29,6 +29,12 @@ REQUIRED_PLUGINS = [
     "looker-operations",
     "looker-apps-viz",
     "looker-analytics-agents",
+]
+
+MARKETPLACE_MANIFESTS = [
+    os.path.join(".claude-plugin", "marketplace.json"),
+    os.path.join(".cursor-plugin", "marketplace.json"),
+    os.path.join(".github", "plugin", "marketplace.json"),
 ]
 
 
@@ -51,7 +57,37 @@ def main():
         except Exception as exc:
             errors.append(f"Invalid JSON in plugins/{p_name}/plugin.json: {exc}")
 
-    # 2. Validate any migrated/created skills under plugins/*/skills/* and experimental/*
+    # 2. Verify multi-client marketplace manifests if present
+    for rel_mp in MARKETPLACE_MANIFESTS:
+        mp_path = os.path.join(repo_root, rel_mp)
+        if not os.path.exists(mp_path):
+            warnings.append(f"Missing marketplace manifest: {rel_mp} (run 'python3 scripts/build_release.py').")
+            continue
+        try:
+            with open(mp_path, "r", encoding="utf-8") as f:
+                mp_data = json.load(f)
+            mp_plugins = mp_data.get("plugins", [])
+            mp_names = [entry.get("name") for entry in mp_plugins]
+            if mp_names != REQUIRED_PLUGINS:
+                errors.append(f"{rel_mp}: 'plugins' list {mp_names} does not match {REQUIRED_PLUGINS}.")
+            for entry in mp_plugins:
+                expected_src = f"./plugins/{entry.get('name')}"
+                if entry.get("source") != expected_src:
+                    errors.append(f"{rel_mp}: plugin '{entry.get('name')}' source must be '{expected_src}'.")
+        except Exception as exc:
+            errors.append(f"Invalid JSON in {rel_mp}: {exc}")
+
+    # 3. Verify .agents/skills symlinks resolve cleanly without broken targets
+    agents_skills = os.path.join(repo_root, ".agents", "skills")
+    if os.path.isdir(agents_skills) and not os.path.islink(agents_skills):
+        for entry in sorted(os.listdir(agents_skills)):
+            if entry.startswith("."):
+                continue
+            full_entry = os.path.join(agents_skills, entry)
+            if not os.path.exists(full_entry):
+                errors.append(f"Broken symlink in .agents/skills/{entry} -> {os.readlink(full_entry)}")
+
+    # 4. Validate any migrated/created skills under plugins/*/skills/* and experimental/*
     skill_dirs = [
         d for d in (
             glob.glob(os.path.join(repo_root, "plugins", "*", "skills", "*"))
@@ -102,7 +138,10 @@ def main():
         print(f"Validation failed with {len(errors)} error(s) and {len(warnings)} warning(s).", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Validation passed ({len(REQUIRED_PLUGINS)} plugins verified, {len(skill_dirs)} migrated skills checked, {len(warnings)} warning(s)).")
+    print(
+        f"Validation passed ({len(REQUIRED_PLUGINS)} plugins verified, "
+        f"{len(skill_dirs)} migrated skills checked, {len(warnings)} warning(s))."
+    )
 
 
 if __name__ == "__main__":
