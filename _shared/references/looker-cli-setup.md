@@ -17,7 +17,7 @@ Before downloading, check if the CLI is already installed and accessible:
 looker-cli --help
 ```
 
-If this command executes successfully and prints the help menu, the CLI is ready. **Skip the installation steps below** and proceed directly to authentication (`references/looker-cli-auth.md`).
+If this command executes successfully and prints the help menu, the CLI is ready. **Skip the installation steps below** and proceed directly to authentication ([looker-cli-auth.md](looker-cli-auth.md)).
 
 ---
 

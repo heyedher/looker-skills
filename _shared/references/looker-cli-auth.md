@@ -4,16 +4,17 @@ Authenticates `looker-cli` to a Looker instance using OAuth and saves the sessio
 
 ## Prerequisites
 
-- Looker CLI must be installed (see `references/looker-cli-setup.md`).
+- Looker CLI must be installed (see [looker-cli-setup.md](looker-cli-setup.md)).
 - You must know the Looker instance URL (host and API port). Generically, the API port is `443` for Looker Core / Google Cloud Core.
 
 ## Instructions
 
 ### 1. Configure a Named Profile
 
-Create a new profile named `default` to save your connection details:
+Create a new profile named `default` to save your connection details. Note that `{instance_host}` must be the bare hostname without `https://` (e.g., `my-instance.cloud.looker.com`). If a `default` profile already exists locally, remove it first to prevent the `profile add` command from throwing an error:
 
 ```bash
+looker-cli profile rm default 2>/dev/null || true
 looker-cli profile add default --host {instance_host} --port {instance_port}
 ```
 
