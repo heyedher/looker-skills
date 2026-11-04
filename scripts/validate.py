@@ -24,7 +24,7 @@ import sys
 
 REQUIRED_PLUGINS = [
     "looker-base",
-    "looker-lookml-modeling",
+    "lookml-modeling",
     "looker-onboarding-migration",
     "looker-operations",
     "looker-apps-viz",
