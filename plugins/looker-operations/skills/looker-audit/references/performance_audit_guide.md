@@ -103,14 +103,14 @@ Review Scheduled Plan System Activity Explore:
 
 *(See `SKILL.md` for actionable queries to identify unused content)*
 
-## 🛡️ Remediation Workflow (Next Steps)
+## Remediation Workflow (Next Steps)
 
 1.  **Identify**: Use System Activity (via `SKILL.md` queries) to detect antipatterns (e.g., Slow Queries, High Dashboards).
 2.  **Isolate**: Use Query Metrics or Job Inspection to find the root cause (e.g., Missing Index, Bad Join).
 3.  **Refactor**: Apply best practices (e.g., convert to derived table, apply Aggregate Awareness).
 4.  **Validate**: Re-run the audit queries to confirm improvement.
 
-## 📚 Official References
+## Official References
 
 For deeper dives, refer to the following documentation:
 - [Optimize Looker Server Performance](https://docs.cloud.google.com/looker/docs/best-practices/how-to-optimize-looker-server-performance)
