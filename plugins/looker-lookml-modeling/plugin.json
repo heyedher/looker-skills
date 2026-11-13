@@ -1,5 +1,5 @@
 {
-  "name": "lookml-modeling",
+  "name": "looker-lookml-modeling",
   "version": "1.0.0",
   "description": "Skills for authoring, architecting, reviewing, migrating, and optimizing LookML models, views, and explores. Requires looker-base.",
   "publisher": "google",

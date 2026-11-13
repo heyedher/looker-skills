@@ -15,7 +15,7 @@ looker-skills/
 |   |-- scripts/                       # Shared utility scripts
 |-- plugins/                           # Domain-scoped plugins
 |   |-- looker-base/                   # CLI & MCP setup (mcp.json + base skills; required by all plugins)
-|   |-- lookml-modeling/               # LookML authoring, architecture, review, migration, optimization
+|   |-- looker-lookml-modeling/        # LookML authoring, architecture, review, migration, optimization
 |   |-- looker-onboarding-migration/   # Step-by-step developer onboarding orchestrator
 |   |-- looker-operations/             # Instance administration, connections, audit, and health
 |   |-- looker-apps-viz/               # Dashboards, custom visualizations, extensions, Data Apps

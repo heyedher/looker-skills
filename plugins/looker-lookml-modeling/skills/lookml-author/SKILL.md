@@ -12,7 +12,7 @@ license: Apache-2.0
 compatibility: Requires looker-base (Looker MCP and looker-cli).
 metadata:
   version: 1.0.0
-  domain: lookml-modeling
+  domain: looker-lookml-modeling
   status: ga
   usage-interface: looker-mcp looker-cli
   publisher: google

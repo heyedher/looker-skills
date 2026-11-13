@@ -16,8 +16,8 @@ All LookML object identifiers (`model`, `explore`, `view`, `dimension`, `dimensi
 
 ### Field Naming Rules
 - **Booleans (`type: yesno`):** Prefix with `is_` or `has_` (e.g., `is_active`, `has_churned`).
-- **Time Dimension Groups (`type: time`):** Never include `_date`, `_time`, or `_at` in the `dimension_group` name. Looker appends the timeframe automatically (`dimension_group: created` $\rightarrow$ `created_date`, `created_month`).
-- **Duration Dimension Groups (`type: duration`):** Never include the word `duration` in the group name (`dimension_group: since_signup` with `intervals: [day, month]` $\rightarrow$ `days_since_signup`, `months_since_signup`).
+- **Time Dimension Groups (`type: time`):** Never include `_date`, `_time`, or `_at` in the `dimension_group` name. Looker appends the timeframe automatically (`dimension_group: created` -> `created_date`, `created_month`).
+- **Duration Dimension Groups (`type: duration`):** Never include the word `duration` in the group name (`dimension_group: since_signup` with `intervals: [day, month]` -> `days_since_signup`, `months_since_signup`).
 - **Measures:** Prefix counts with `count_` (`count_orders`), sums with `total_` (`total_revenue`), and averages with `avg_` (`avg_order_value`).
 
 ---
