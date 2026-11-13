@@ -17,7 +17,7 @@ Verify that the Looker Core service account (`service-{project_number}@gcp-sa-lo
 
 1. Run the pre-flight check script in `iam` mode:
    ```bash
-   ./plugins/looker-onboarding-migration/skills/looker-developer-onboarding/scripts/preflight_check.sh \
+   scripts/preflight_check.sh \
      --mode iam \
      --looker-project {looker_gcp_project_id} \
      --bq-project {bigquery_gcp_project_id}

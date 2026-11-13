@@ -7,7 +7,7 @@ Verifies that the local environment has the required tools (`gcloud`, `bq`), act
 Execute the bundled pre-flight check script in `system` mode, specifying the directory where `looker-cli` is or will be installed (typically `~/.local/bin` or `./bin`):
 
 ```bash
-./plugins/looker-onboarding-migration/skills/looker-developer-onboarding/scripts/preflight_check.sh \
+scripts/preflight_check.sh \
   --mode system \
   --install-dir ~/.local/bin
 ```
@@ -44,7 +44,7 @@ Create the directory if missing, or fall back to a writable workspace subdirecto
 Before registering the BigQuery connection in Step 5, run the pre-flight script in `iam` mode to verify that the Looker Core service account holds the required least-privilege roles on the target BigQuery GCP project (`roles/bigquery.dataViewer`, `roles/bigquery.jobUser`, and `roles/serviceusage.serviceUsageConsumer`):
 
 ```bash
-./plugins/looker-onboarding-migration/skills/looker-developer-onboarding/scripts/preflight_check.sh \
+scripts/preflight_check.sh \
   --mode iam \
   --looker-project {looker_gcp_project_id} \
   --bq-project {bigquery_gcp_project_id}
